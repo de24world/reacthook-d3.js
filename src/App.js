@@ -2,11 +2,10 @@ import React, { useRef, useEffect, useState } from "react";
 import "./App.css";
 import {
   select,
-  line,
-  curveCardinal,
   axisBottom,
   axisRight,
-  scaleLinear
+  scaleLinear,
+  scaleBand
 } from "d3";
 
 function App() {
@@ -16,17 +15,22 @@ function App() {
   // will be called initially and on every data change
   useEffect(() => {
     const svg = select(svgRef.current);
-    const xScale = scaleLinear()
-      .domain([0, data.length - 1])
-      .range([0, 300]);
+    const xScale = scaleBand()
+      .domain(data.map((value, index) => index))
+      .range([0, 300])
+      .padding(0.5);
 
     const yScale = scaleLinear()
       .domain([0, 150])
       .range([150, 0]);
 
+      const colorScale = scaleLinear()
+      .domain([75, 100, 150])
+      .range(["green", "oragne", "red"])
+      .clamp(true);
+
     const xAxis = axisBottom(xScale)
-      .ticks(data.length)
-      .tickFormat(index => index + 1);
+
     svg
       .select(".x-axis")
       .style("transform", "translateY(150px)")
@@ -38,22 +42,18 @@ function App() {
       .style("transform", "translateX(300px)")
       .call(yAxis);
 
-    // generates the "d" attribute of a path element
-    const myLine = line()
-      .x((value, index) => xScale(index))
-      .y(yScale)
-      .curve(curveCardinal);
-
-    // renders path element, and attaches
-    // the "d" attribute from line generator above
-    svg
-      .selectAll(".line")
-      .data([data])
-      .join("path")
-      .attr("class", "line")
-      .attr("d", myLine)
-      .attr("fill", "none")
-      .attr("stroke", "blue");
+      svg
+        .selectAll(".bar")
+        .data(data)
+        .join("rect")
+        .attr("class", "bar")
+        .style("transform", "scale(1, -1)")
+        .attr("x", (value, index) => xScale(index))
+        .attr("y", yScale)
+        .attr("width", xScale.bandwidth())
+        .transition()
+        .attr("fill", colorScale)
+        .attr("height", value => 150 - yScale(value));
   }, [data]);
 
   return (
